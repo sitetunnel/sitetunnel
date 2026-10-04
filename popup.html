@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SiteTunnel</title>
+  <style>
+    :root {
+      --st-bg: #07080B;
+      --st-card: rgba(255, 255, 255, 0.045);
+      --st-card-hover: rgba(255, 255, 255, 0.07);
+      --st-border: rgba(255, 255, 255, 0.08);
+      --st-border-light: rgba(255, 255, 255, 0.14);
+      --st-green: #30D158;
+      --st-green-hover: #34C759;
+      --st-green-glow: rgba(48, 209, 88, 0.42);
+      --st-green-bg: rgba(48, 209, 88, 0.12);
+      --st-blue: #0A84FF;
+      --st-blue-hover: #0071E3;
+      --text-primary: #FFFFFF;
+      --text-secondary: rgba(255, 255, 255, 0.65);
+      --text-tertiary: rgba(255, 255, 255, 0.42);
+      --text-quaternary: rgba(255, 255, 255, 0.22);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    html, body {
+      width: 312px;
+      height: 424px;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+      user-select: none;
+      background-color: var(--st-bg);
+      color: var(--text-primary);
+    }
+
+    body {
+      position: relative;
+      background-image: 
+        radial-gradient(ellipse 90% 60% at 50% -20%, rgba(56, 130, 255, 0.08), transparent 70%),
+        radial-gradient(ellipse 80% 60% at 50% 120%, rgba(0, 0, 0, 0.8), transparent);
+      transition: background 0.5s var(--ease-smooth);
+    }
+
+    body.on {
+      background-image: 
+        radial-gradient(ellipse 90% 70% at 50% 28%, rgba(48, 209, 88, 0.16), transparent 70%),
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(48, 209, 88, 0.09), transparent 60%);
+    }
+
+    /* View Slider */
+    .view-slider {
+      display: flex;
+      width: 200%;
+      height: 100%;
+      transition: transform 0.4s var(--ease-smooth);
+    }
+
+    .view-slider.show-settings {
+      transform: translateX(-50%);
+    }
+
+    .view-panel {
+      width: 312px;
+      height: 424px;
+      padding: 16px 18px 18px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    /* Top Navigation Header */
+    .header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(145deg, #1A1F2A 0%, #0E1219 100%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    }
+
+    .brand-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: -0.25px;
+      color: var(--text-primary);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .status-capsule {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3.5px 9px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.35s var(--ease-smooth);
+    }
+
+    .status-capsule .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #636366;
+      transition: all 0.35s var(--ease-smooth);
+    }
+
+    .status-capsule .label {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      transition: color 0.35s var(--ease-smooth);
+    }
+
+    body.on .status-capsule {
+      background: var(--st-green-bg);
+      border-color: rgba(48, 209, 88, 0.3);
+    }
+
+    body.on .status-capsule .dot {
+      background: var(--st-green);
+      box-shadow: 0 0 8px var(--st-green);
+    }
+
+    body.on .status-capsule .label {
+      color: var(--st-green);
+    }
+
+    .icon-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
+      width: 27px;
+      height: 27px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-secondary);
+      outline: none;
+      transition: all 0.2s var(--ease-smooth);
+    }
+
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #FFFFFF;
+      transform: scale(1.05);
+    }
+
+    .icon-btn:active {
+      transform: scale(0.92);
+    }
+
+    /* Main Hero Area */
+    .hero {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 8px 0 10px 0;
+    }
+
+    /* Ambient Background Light Layer (from original extension) */
+    .ambient-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--st-green-glow) 0%, transparent 70%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s var(--ease-smooth), transform 0.5s var(--ease-smooth);
+      filter: blur(28px);
+      z-index: 1;
+    }
+
+    body.on .ambient-glow {
+      opacity: 0.6;
+      animation: ambientBreathe 3.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes ambientBreathe {
+      0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.45; }
+      100% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.75; }
+    }
+
+    /* Bezel Track Container (from original extension) */
+    .button-track {
+      position: relative;
+      width: 122px;
+      height: 122px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      box-shadow: 
+        inset 0 2px 8px rgba(0, 0, 0, 0.5),
+        0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Tactile Halo Ring (from original extension) */
+    .pulse-halo {
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 1.5px solid var(--st-green);
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.92);
+      transition: all 0.4s var(--ease-smooth);
+      z-index: 1;
+    }
+
+    body.on .pulse-halo {
+      opacity: 0.5;
+      animation: haloWave 2.8s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+    }
+
+    @keyframes haloWave {
+      0% { transform: scale(0.98); opacity: 0.55; }
+      50% { transform: scale(1.08); opacity: 0.15; }
+      100% { transform: scale(0.98); opacity: 0.55; }
+    }
+
+    /* Interactive Power Button (from original extension) */
+    #btn {
+      position: relative;
+      z-index: 2;
+      width: 98px;
+      height: 98px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      padding: 0;
+      background: linear-gradient(150deg, #242730 0%, #15161D 100%);
+      box-shadow: 
+        0 8px 24px -2px rgba(0, 0, 0, 0.6),
+        inset 0 1px 1px rgba(255, 255, 255, 0.22),
+        inset 0 -2px 3px rgba(0, 0, 0, 0.5);
+      transition: 
+        transform 0.25s var(--ease-spring),
+        background 0.4s var(--ease-smooth),
+        box-shadow 0.4s var(--ease-smooth),
+        border-color 0.4s var(--ease-smooth);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #btn:hover {
+      transform: scale(1.035);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    #btn:active, #btn.btn-press {
+      transform: scale(0.93) !important;
+      transition: transform 0.12s ease-out;
+    }
+
+    /* Concentric Perspective Tunnel Rings */
+    .portal-ring {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      transition: all 0.4s var(--ease-smooth);
+    }
+
+    .ring-outer {
+      width: 80px;
+      height: 80px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .ring-mid {
+      width: 60px;
+      height: 60px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .ring-inner {
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .portal-core {
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.03);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      transition: all 0.4s var(--ease-smooth);
+    }
+
+    .portal-glyph {
+      position: relative;
+      z-index: 3;
+      width: 38px;
+      height: 38px;
+      stroke: rgba(255, 255, 255, 0.42);
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      pointer-events: none;
+      transition: stroke 0.35s var(--ease-smooth), filter 0.35s var(--ease-smooth), transform 0.35s var(--ease-spring);
+    }
+
+    /* ON State (from original extension) */
+    #btn.on {
+      background: linear-gradient(150deg, var(--st-green-hover) 0%, #20873B 100%);
+      border-color: rgba(255, 255, 255, 0.45);
+      box-shadow: 
+        0 0 32px var(--st-green-glow),
+        0 10px 24px -2px rgba(0, 0, 0, 0.5),
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.65),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+    }
+
+    #btn.on .ring-outer {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    #btn.on .ring-mid {
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    #btn.on .ring-inner {
+      border-color: rgba(255, 255, 255, 0.45);
+    }
+
+    #btn.on .portal-core {
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 80%);
+    }
+
+    #btn.on .portal-glyph {
+      stroke: #FFFFFF;
+      filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
+      transform: scale(1.02);
+    }
+
+    /* Status Typography */
+    .status-text-wrap {
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .status-title {
+      font-size: 16.5px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      color: var(--text-primary);
+    }
+
+    .status-subtitle {
+      margin-top: 2px;
+      font-size: 11.5px;
+      font-weight: 400;
+      color: var(--text-tertiary);
+      letter-spacing: -0.15px;
+    }
+
+    /* Bottom Control Island (Grouped Card) */
+    .info-card {
+      position: relative;
+      z-index: 2;
+      border-radius: 14px;
+      background: var(--st-card);
+      border: 1px solid var(--st-border);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      padding: 10px 14px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      cursor: pointer;
+      transition: all 0.25s var(--ease-smooth);
+    }
+
+    .info-card:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+      background: var(--st-card-hover);
+      transform: translateY(-1px);
+    }
+
+    .info-card:active {
+      transform: scale(0.985);
+    }
+
+    .info-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 28px;
+    }
+
+    .info-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: -0.15px;
+      flex-shrink: 0;
+    }
+
+    .info-left svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--text-tertiary);
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    .info-right {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      min-width: 0;
+      flex: 1;
+      padding-left: 12px;
+    }
+
+    .domain-tag {
+      font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 3px 8px;
+      max-width: 170px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      line-height: 1.3;
+    }
+
+    .domain-tag.placeholder {
+      color: rgba(255, 255, 255, 0.4);
+      border-style: dashed;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .node-text {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 160px;
+      letter-spacing: -0.1px;
+      text-align: right;
+    }
+
+    .chevron-icon {
+      width: 12px;
+      height: 12px;
+      stroke: var(--text-quaternary);
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      flex-shrink: 0;
+      transition: transform 0.2s ease, stroke 0.2s ease;
+    }
+
+    .info-card:hover .chevron-icon {
+      stroke: var(--text-secondary);
+      transform: translateX(2px);
+    }
+
+    .divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.06);
+      margin: 5px 0;
+    }
+
+    /* ---------------- SETTINGS VIEW ---------------- */
+    .settings-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      color: var(--st-blue);
+      font-size: 13.5px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 0;
+      outline: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .nav-btn:hover {
+      opacity: 0.8;
+    }
+
+    .header-spacer {
+      width: 44px;
+      display: inline-block;
+    }
+
+    .settings-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #FFFFFF;
+      letter-spacing: -0.2px;
+    }
+
+    .settings-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 0 6px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .settings-content::-webkit-scrollbar {
+      display: none;
+    }
+
+    .setting-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .setting-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-tertiary);
+      padding-left: 2px;
+    }
+
+    .setting-card {
+      background: var(--st-card);
+      border: 1px solid var(--st-border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .input-field {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 11.5px;
+      color: #FFFFFF;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .input-field:focus {
+      border-color: var(--st-blue);
+    }
+
+    .add-site-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .add-site-btn {
+      padding: 7px 12px;
+      background: var(--st-blue);
+      border: 1px solid rgba(10, 132, 255, 0.4);
+      border-radius: 8px;
+      color: #FFFFFF;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s ease;
+      outline: none;
+    }
+
+    .add-site-btn:hover {
+      background: var(--st-blue-hover);
+    }
+
+    .sites-tags-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      max-height: 82px;
+      overflow-y: auto;
+      padding: 2px 0;
+    }
+
+    .sites-tags-wrap::-webkit-scrollbar {
+      display: none;
+    }
+
+    .site-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      font-size: 10.5px;
+      font-weight: 500;
+      color: #FFFFFF;
+      animation: tagPop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes tagPop {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .tag-remove-btn {
+      background: none;
+      border: none;
+      color: var(--text-tertiary);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 1px;
+      outline: none;
+      transition: color 0.15s ease;
+    }
+
+    .tag-remove-btn:hover {
+      color: #FF453A;
+    }
+
+    .empty-tags-hint {
+      font-size: 10.5px;
+      color: var(--text-tertiary);
+      font-style: italic;
+      padding: 2px 0;
+    }
+
+    .preset-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .chip {
+      font-size: 9.5px;
+      font-weight: 500;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 3.5px 7px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all 0.15s ease;
+    }
+
+    .chip.active-chip {
+      background: rgba(48, 209, 88, 0.14);
+      border-color: rgba(48, 209, 88, 0.35);
+      color: var(--st-green);
+    }
+
+    .chip:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #FFFFFF;
+    }
+
+    .select-field {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 11.5px;
+      color: #FFFFFF;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .select-field option {
+      background: #151820;
+      color: #FFFFFF;
+    }
+
+    .text-link-btn {
+      background: none;
+      border: none;
+      color: var(--st-blue);
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 0;
+      outline: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .text-link-btn:hover {
+      opacity: 0.8;
+    }
+
+    /* Pill Toast Notification */
+    .toast {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(30, 34, 42, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      color: #FFFFFF;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 14px;
+      border-radius: 999px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s var(--ease-spring);
+      z-index: 100;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="view-slider" id="viewSlider">
+    <!-- VIEW 1: MAIN CONTROL -->
+    <div class="view-panel" id="mainPanel">
+      <header class="header">
+        <div class="brand" aria-label="Tunnel Status">
+          <div class="brand-icon">
+            <!-- Concentric Tunnel Aperture SVG -->
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="#30D158" stroke-width="1.8" stroke-opacity="0.9"></circle>
+              <circle cx="12" cy="12" r="6" stroke="#30D158" stroke-width="1.8" stroke-opacity="0.6"></circle>
+              <circle cx="12" cy="12" r="2.2" fill="#30D158"></circle>
+            </svg>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div class="status-capsule" id="statusCapsule">
+            <span class="dot" id="statusDot"></span>
+            <span class="label" id="statusPillText">Direct</span>
+          </div>
+          <button class="icon-btn" id="openSettingsBtn" aria-label="Settings" title="Preferences">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="hero">
+        <div class="button-track">
+          <div class="ambient-glow" aria-hidden="true"></div>
+          <div class="pulse-halo" aria-hidden="true"></div>
+          <!-- Tactile Concentric Tunnel Portal Switch -->
+          <button id="btn" class="off" aria-label="Toggle Tunnel Route" aria-pressed="false">
+            <div class="portal-ring ring-outer" aria-hidden="true"></div>
+            <div class="portal-ring ring-mid" aria-hidden="true"></div>
+            <div class="portal-ring ring-inner" aria-hidden="true"></div>
+            <div class="portal-core" aria-hidden="true"></div>
+            <svg class="portal-glyph" viewBox="0 0 24 24">
+              <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+              <line x1="12" y1="2" x2="12" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="status-text-wrap">
+          <h1 class="status-title" id="statusTitle">Tunnel Inactive</h1>
+          <p class="status-subtitle" id="statusSubtitle">Tap to open tunnel</p>
+        </div>
+      </main>
+
+      <!-- Bottom Control Island (Grouped Card) -->
+      <footer class="info-card" id="infoCard" title="Click to edit Target Sites and Tunnel Node">
+        <div class="info-row">
+          <div class="info-left">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="12" cy="12" r="4"></circle>
+              <line x1="12" y1="2" x2="12" y2="6"></line>
+              <line x1="12" y1="18" x2="12" y2="22"></line>
+              <line x1="2" y1="12" x2="6" y2="12"></line>
+              <line x1="18" y1="12" x2="22" y2="12"></line>
+            </svg>
+            <span>Target</span>
+          </div>
+          <div class="info-right">
+            <span class="domain-tag placeholder" id="targetDisplay">Tap to set site</span>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="info-row">
+          <div class="info-left">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+            </svg>
+            <span>Tunnel Node</span>
+          </div>
+          <div class="info-right">
+            <span class="node-text" id="providerDisplay">Auto (Singapore)</span>
+            <svg class="chevron-icon" viewBox="0 0 24 24">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+            <span id="vpnBadge" style="display:none;" aria-hidden="true"></span>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- VIEW 2: SETTINGS SHEET -->
+    <div class="view-panel" id="settingsPanel">
+      <header class="settings-header">
+        <button class="nav-btn" id="closeSettingsBtn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Back
+        </button>
+        <span class="settings-title">Preferences</span>
+        <span class="header-spacer" aria-hidden="true"></span>
+      </header>
+
+      <div class="settings-content">
+        <!-- Target Sites Group -->
+        <div class="setting-group">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding-right: 2px;">
+            <label class="setting-label" for="addSiteInput">Tunneled Sites (<span id="sitesCountBadge">0</span>)</label>
+            <button type="button" class="text-link-btn" id="useCurrentTabBtn">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+              + Current Tab
+            </button>
+          </div>
+          <div class="setting-card">
+            <div class="add-site-row">
+              <input type="text" id="addSiteInput" class="input-field" placeholder="Add domain (e.g. site.com)" spellcheck="false">
+              <button type="button" class="add-site-btn" id="addSiteBtn">+ Add</button>
+            </div>
+            <div class="sites-tags-wrap" id="sitesTagsWrap">
+              <!-- Dynamically populated tags with × buttons -->
+            </div>
+            <div class="divider" style="margin: 2px 0;"></div>
+            <div style="font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary);">Quick Presets (Tap to toggle)</div>
+            <div class="preset-chips" id="presetChips">
+              <!-- Dynamically populated preset chips -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Tunnel Location Group -->
+        <div class="setting-group">
+          <label class="setting-label" for="providerSelect">Tunnel Node Gateway</label>
+          <div class="setting-card">
+            <select id="providerSelect" class="select-field">
+              <!-- Dynamically populated -->
+            </select>
+            <input type="text" id="customProxyInput" class="input-field" placeholder="Proxy Host (e.g. 1.2.3.4:8080 or socks5://...)" style="display: none;" spellcheck="false">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Saved</div>
+
+  <script src="vpn_registry.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
