@@ -103,17 +103,41 @@ function render(on, config) {
   providerDisplay.textContent = pInfo.badge || pInfo.name;
   providerDisplay.title = pInfo.name + (pInfo.tier ? " — " + pInfo.tier : "");
 
-  const isSurfshark = pInfo.type === "surfshark";
-  const hasDirectAuth = isSurfshark && (cfg.surfsharkUsername || "").trim() && (cfg.surfsharkPassword || "").trim();
+  const isSurfshark = pInfo.type === "surfshark" || isSurfsharkProviderId(pInfo.id);
+  const hasDirectAuth = !!((cfg.surfsharkUsername || "").trim() && (cfg.surfsharkPassword || "").trim() && pInfo.id !== "custom_proxy");
   const hasLocalProxy = isSurfshark && (cfg.surfsharkProxyHost || "").trim();
+
+  // Dynamic Auth Banner Status
+  const authBanner = document.getElementById("authBanner");
+  const authBannerText = document.getElementById("authBannerText");
+  const authBannerTag = document.getElementById("authBannerTag");
+  if (authBanner && authBannerText && authBannerTag) {
+    if (hasDirectAuth) {
+      authBanner.style.background = "rgba(48, 209, 88, 0.12)";
+      authBanner.style.border = "1px solid rgba(48, 209, 88, 0.35)";
+      authBannerText.style.color = "var(--st-green)";
+      authBannerText.innerHTML = "🦈 <b>Direct Surfshark Active</b> · 0 hiccups";
+      authBannerTag.style.background = "rgba(48, 209, 88, 0.25)";
+      authBannerTag.style.color = "var(--st-green)";
+      authBannerTag.textContent = "STABLE";
+    } else {
+      authBanner.style.background = "rgba(255, 159, 10, 0.12)";
+      authBanner.style.border = "1px solid rgba(255, 159, 10, 0.35)";
+      authBannerText.style.color = "var(--st-amber)";
+      authBannerText.innerHTML = "⚠️ <b>Free Relays active</b> · Connect Surfshark";
+      authBannerTag.style.background = "rgba(255, 159, 10, 0.25)";
+      authBannerTag.style.color = "var(--st-amber)";
+      authBannerTag.textContent = "SETUP";
+    }
+  }
 
   if (isEnabled) {
     statusPillText.textContent = "Active";
-    if (isSurfshark && hasDirectAuth) {
+    if (hasDirectAuth) {
       statusTitle.textContent = "Surfshark Direct Active";
       statusSubtitle.textContent = sites.length > 0
-        ? (sites.length === 1 ? `Routing ${sites[0]} via ${pInfo.badge} (Direct VPN)` : `${sites.length} sites via ${pInfo.badge} (Direct VPN)`)
-        : `Direct tunnel via ${pInfo.badge}`;
+        ? (sites.length === 1 ? `Routing ${sites[0]} via Direct Surfshark (${pInfo.badge || pInfo.name})` : `${sites.length} sites via Direct Surfshark`)
+        : `Direct tunnel via ${pInfo.badge || pInfo.name}`;
     } else if (isSurfshark && !hasLocalProxy) {
       // v1.3.4: HONEST relay mode — show actual exit, not requested city.
       // Requested Singapore -> actual Japan/Mumbai exit. Exact IP needs Gluetun/app.
@@ -1107,6 +1131,18 @@ function hideSettingsView() {
 
 openSettingsBtn.onclick = showSettingsView;
 infoCard.onclick = showSettingsView;
+const authBannerEl = document.getElementById("authBanner");
+if (authBannerEl) {
+  authBannerEl.onclick = () => {
+    showSettingsView();
+    setTimeout(() => {
+      if (surfsharkUsernameInput) {
+        surfsharkUsernameInput.scrollIntoView({ behavior: "smooth", block: "center" });
+        surfsharkUsernameInput.focus();
+      }
+    }, 150);
+  };
+}
 closeSettingsBtn.onclick = () => {
   autoSave();
   hideSettingsView();

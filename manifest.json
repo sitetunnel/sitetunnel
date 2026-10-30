@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "SiteTunnel — Single Site VPN Switcher",
   "short_name": "SiteTunnel",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Route specific websites through secure cloud tunnels & Surfshark locations with one click. Clean, instant, and split-tunnel.",
   "permissions": [
     "proxy",

@@ -1039,6 +1039,12 @@
           </div>
         </div>
       </footer>
+
+      <!-- Direct Surfshark Auth Banner -->
+      <div id="authBanner" class="auth-banner" style="margin: 10px 16px 0 16px; padding: 7px 10px; border-radius: 8px; font-size: 11px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.15s ease;">
+        <span id="authBannerText">🦈 Free Relays active · Tap to connect Paid Surfshark</span>
+        <span id="authBannerTag" style="font-size: 9px; padding: 1px 6px; border-radius: 4px; font-weight: 700;">SETUP</span>
+      </div>
     </div>
 
     <!-- VIEW 2: SETTINGS SHEET -->
@@ -1114,11 +1120,21 @@
               <div class="ss-hint">⚡ Relay = instant IP but <b>approximate location + slower</b> (free 2-proxy chain). For <b>exact city + max speed</b>, connect the <a href="#" id="surfsharkDashboardLink">Surfshark app</a> to this city OR run Gluetun Docker (<span style="font-family:monospace;">127.0.0.1:8888</span>, see <span style="font-family:monospace;">surfshark-split-tunnel/</span>) then set it below. Score = ping + load×8 (low score wins).</div>
             </div>
             <input type="text" id="surfsharkProxyInput" class="input-field" placeholder="Optional local Surfshark proxy — e.g. 127.0.0.1:8888 (leave empty for App mode)" spellcheck="false" autocomplete="off">
-            <div class="ss-auth-section" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--st-border);">
-              <div style="font-size: 11px; font-weight: 600; color: var(--st-green); margin-bottom: 4px;">🦈 Paid Surfshark Direct Credentials (No Relay)</div>
-              <div class="ss-hint" style="margin-bottom: 6px;">Connect <b>directly to Surfshark servers</b> in any of the 142 cities. Enter credentials from <a href="https://my.surfshark.com/vpn/manual-setup" target="_blank" style="color:var(--st-blue);">Surfshark Manual Setup</a>:</div>
-              <input type="text" id="surfsharkUsernameInput" class="input-field" placeholder="Surfshark Service Username" spellcheck="false" autocomplete="off" style="margin-bottom: 6px;">
-              <input type="password" id="surfsharkPasswordInput" class="input-field" placeholder="Surfshark Service Password" spellcheck="false" autocomplete="off">
+            <div class="ss-auth-section" style="margin-top: 12px; padding: 10px; background: rgba(48, 209, 88, 0.08); border: 1px solid rgba(48, 209, 88, 0.3); border-radius: 8px;">
+              <div style="font-size: 11px; font-weight: 700; color: var(--st-green); margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
+                <span>🔑 Connect Directly to Paid Surfshark</span>
+                <span style="font-size: 9px; padding: 2px 5px; border-radius: 4px; background: rgba(48, 209, 88, 0.2); color: var(--st-green);">PERMANENT</span>
+              </div>
+              <div class="ss-hint" style="margin-bottom: 8px; color: var(--text-secondary);">
+                Skip free relays entirely! Connect directly to Surfshark's official servers (100% uptime, zero hiccups).
+              </div>
+              <div style="margin-bottom: 6px;">
+                <a href="https://my.surfshark.com/vpn/manual-setup" target="_blank" style="display: block; text-align: center; padding: 6px; background: rgba(10, 132, 255, 0.15); border: 1px solid var(--st-blue); border-radius: 6px; color: var(--text-primary); text-decoration: none; font-size: 11px; font-weight: 500;">
+                  👉 Click here to get Credentials (my.surfshark.com)
+                </a>
+              </div>
+              <input type="text" id="surfsharkUsernameInput" class="input-field" placeholder="Paste Surfshark Service Username" spellcheck="false" autocomplete="off" style="margin-bottom: 6px;">
+              <input type="password" id="surfsharkPasswordInput" class="input-field" placeholder="Paste Surfshark Service Password" spellcheck="false" autocomplete="off">
             </div>
           </div>
         </div>

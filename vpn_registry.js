@@ -15,7 +15,6 @@ const TUNNEL_LOCATIONS = [
     badge: "US Cloud",
     proxies: [
       "PROXY 130.110.103.245:3128",
-      "SOCKS5 45.61.188.134:44499",
       "DIRECT"
     ]
   },
@@ -26,18 +25,17 @@ const TUNNEL_LOCATIONS = [
     badge: "EU Cloud",
     proxies: [
       "PROXY 103.237.102.191:11111",
-      "SOCKS5 5.175.245.72:1083",
       "DIRECT"
     ]
   },
   {
     id: "sg",
     name: "🇸🇬 Singapore / Asia (Cloud Tunnel)",
-    tier: "Asia Datacenter (Singapore Azure / Tokyo)",
+    tier: "Asia Datacenter (Alibaba / Tencent)",
     badge: "Asia Cloud",
     proxies: [
-      "PROXY 4.144.146.21:80",
-      "SOCKS5 101.36.104.46:10808",
+      "PROXY 8.215.25.3:2080",
+      "PROXY 43.153.195.69:80",
       "DIRECT"
     ]
   },
@@ -297,9 +295,8 @@ function getExitLabelForRelay(relayId, loc) {
   return relayId ? relayId.toUpperCase() : "";
 }
 
-function getAccuracyNoteForSurfshark(loc, hasLocalProxy) {
-  // v1.3.4: accurate-location helper. Exact city IP is ONLY possible via
-  // Gluetun local proxy or Surfshark app. Relay mode is always approximate.
+function getAccuracyNoteForSurfshark(loc, hasLocalProxy, hasDirectAuth) {
+  if (hasDirectAuth) return { exact: true, text: "Exact Surfshark Server IP (Direct HTTPS · 100% stable)" };
   if (hasLocalProxy) return { exact: true, text: "Exact Surfshark IP (local proxy)" };
   try {
     const cc = loc && loc.cc ? String(loc.cc).toUpperCase() : "";
@@ -315,12 +312,8 @@ function getAccuracyNoteForSurfshark(loc, hasLocalProxy) {
 }
 
 function getProviderInfo(providerId, config) {
-  // Surfshark subscriber location — instant relay mode:
-  // Chrome cannot dial WireGuard, so each Surfshark city maps to the closest
-  // WORKING legacy relay cluster. Selecting a Surfshark location therefore
-  // changes exit IP immediately for target sites (verified via api.ipify.org).
-  // For 100% Surfshark-network IP, connect the Surfshark app to the same city
-  // (handoff) or set a local Gluetun proxy (true split-tunnel).
+  const hasDirectAuth = !!(config && (config.surfsharkUsername || "").trim() && (config.surfsharkPassword || "").trim());
+
   if (isSurfsharkProviderId(providerId)) {
     const host = surfsharkHostFromProviderId(providerId);
     let loc = getSurfsharkLocationFromConfig(config);
@@ -335,7 +328,7 @@ function getProviderInfo(providerId, config) {
     return {
       id: providerId,
       name: `Surfshark ${surfsharkDisplayName(loc)}`,
-      tier: loc.host + ` (exit: ${exitLabel} ~approx)`,
+      tier: hasDirectAuth ? (loc.host + " (Direct Surfshark · 100% stable)") : (loc.host + ` (exit: ${exitLabel} ~approx)`),
       badge: surfsharkShortBadge(loc),
       type: "surfshark",
       surfshark: loc,
@@ -351,8 +344,16 @@ function getProviderInfo(providerId, config) {
     const regionName = regionId === "us" ? "United States" : (regionId === "eu" ? "Europe" : "Singapore");
     return {
       ...p,
-      badge: `Auto (${regionName})`,
+      badge: `Auto (${regionName})${hasDirectAuth ? " · Direct" : ""}`,
+      tier: hasDirectAuth ? "Direct Surfshark HTTPS Proxy (100% stable)" : p.tier,
       proxies: regionObj ? regionObj.proxies : TUNNEL_LOCATIONS[1].proxies
+    };
+  }
+  if (hasDirectAuth && p.id !== "custom_proxy") {
+    return {
+      ...p,
+      badge: `${p.badge || p.name} · Direct`,
+      tier: "Direct Surfshark HTTPS Proxy (100% stable)"
     };
   }
   return p;

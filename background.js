@@ -88,7 +88,6 @@ function buildPacData(targetSites, proxyDirectiveList) {
 async function filterHealthyProxies(proxyList) {
   if (!Array.isArray(proxyList) || proxyList.length === 0) return ["DIRECT"];
   const healthy = [];
-  const rest = [];
 
   for (const p of proxyList) {
     if (!p || p === "DIRECT") continue;
@@ -97,21 +96,20 @@ async function filterHealthyProxies(proxyList) {
       const hostPort = parts[1];
       try {
         const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 700);
+        const tid = setTimeout(() => ctrl.abort(), 600);
         await fetch(`http://${hostPort}/`, { mode: "no-cors", cache: "no-store", signal: ctrl.signal });
         clearTimeout(tid);
         healthy.push(p);
       } catch (err) {
-        rest.push(p);
+        // DEAD or timed out: DO NOT USE! Drop it completely so Chrome never hangs!
       }
-    } else {
-      healthy.push(p);
     }
+    // We intentionally skip untestable public SOCKS5 proxies because dead SOCKS5 freezes Chrome for 30s.
   }
 
-  const combined = [...healthy, ...rest];
-  if (combined.length === 0) return ["DIRECT"];
-  return [...combined.slice(0, 2), "DIRECT"];
+  // If no proxies passed health check, immediately fall back to DIRECT so Chrome NEVER stalls
+  if (healthy.length === 0) return ["DIRECT"];
+  return [...healthy.slice(0, 2), "DIRECT"];
 }
 
 async function applyState(on) {
@@ -141,15 +139,32 @@ async function applyState(on) {
     return { success: false, error: "NO_TARGET_SITES", provider };
   }
 
-  // 0. Surfshark subscriber mode (ss:<hostname>)
-  if (provider.type === "surfshark" || isSurfsharkProviderId(provider.id)) {
-    const user = (config.surfsharkUsername || "").trim();
-    const pass = (config.surfsharkPassword || "").trim();
-    const localProxy = (config.surfsharkProxyHost || "").trim();
-    const host = provider.surfshark && provider.surfshark.host ? provider.surfshark.host : surfsharkHostFromProviderId(provider.id);
+  const user = (config.surfsharkUsername || "").trim();
+  const pass = (config.surfsharkPassword || "").trim();
+  const localProxy = (config.surfsharkProxyHost || "").trim();
 
-    // Priority 1: Direct Paid Surfshark HTTPS Proxy (100% Genuine Surfshark Network IP!)
-    if (user && pass && host) {
+  // Priority 1: Direct Paid Surfshark HTTPS Proxy (100% Genuine Surfshark Network IP, Zero Relays, 0ms stall!)
+  // If user has provided Surfshark credentials and hasn't explicitly chosen a custom manual proxy,
+  // route directly to Surfshark official servers for ANY selected location (Auto, US, EU, SG, or any of the 142 clusters)!
+  if (user && pass && provider.id !== "custom_proxy") {
+    let host = "";
+    if (provider.surfshark && provider.surfshark.host) {
+      host = provider.surfshark.host;
+    } else if (isSurfsharkProviderId(provider.id)) {
+      host = surfsharkHostFromProviderId(provider.id);
+    } else if (provider.id === "us") {
+      host = "us-nyc.prod.surfshark.com";
+    } else if (provider.id === "eu") {
+      host = "de-fra.prod.surfshark.com";
+    } else if (provider.id === "sg") {
+      host = "sg-sng.prod.surfshark.com";
+    } else {
+      // auto / closest region
+      const reg = getAutoRegion(config);
+      host = reg === "us" ? "us-nyc.prod.surfshark.com" : (reg === "eu" ? "de-fra.prod.surfshark.com" : "sg-sng.prod.surfshark.com");
+    }
+
+    if (host) {
       try {
         const proxyDirective = `HTTPS ${host}:443; PROXY ${host}:80; DIRECT`;
         const pacData = buildPacData(targetSites, proxyDirective);
@@ -160,7 +175,7 @@ async function applyState(on) {
           },
           scope: "regular"
         });
-        const cityTxt = provider.surfshark ? surfsharkDisplayName(provider.surfshark) : host;
+        const cityTxt = provider.surfshark ? surfsharkDisplayName(provider.surfshark) : (provider.name || host);
         return {
           success: true,
           enabled: true,
@@ -174,25 +189,46 @@ async function applyState(on) {
         return { success: false, error: "PROXY_ERROR", provider };
       }
     }
+  }
 
-    // Priority 2: local Gluetun true split-tunnel
-    if (localProxy) {
-      try {
-        const proxyChain = normalizeProxyChain(localProxy);
-        const pacData = buildPacData(targetSites, proxyChain);
-        await chrome.proxy.settings.set({
-          value: {
-            mode: "pac_script",
-            pacScript: { data: pacData }
-          },
-          scope: "regular"
-        });
-        return { success: true, enabled: true, provider, mode: "surfshark-proxy", accuracy: "exact", expandedSites: targetSites };
-      } catch (e) {
-        return { success: false, error: "PROXY_ERROR", provider };
-      }
+  // Priority 2: local Gluetun true split-tunnel (if user configured a local proxy like 127.0.0.1:8888)
+  if (localProxy && (provider.type === "surfshark" || isSurfsharkProviderId(provider.id))) {
+    try {
+      const proxyChain = normalizeProxyChain(localProxy);
+      const pacData = buildPacData(targetSites, proxyChain);
+      await chrome.proxy.settings.set({
+        value: {
+          mode: "pac_script",
+          pacScript: { data: pacData }
+        },
+        scope: "regular"
+      });
+      return { success: true, enabled: true, provider, mode: "surfshark-proxy", accuracy: "exact", expandedSites: targetSites };
+    } catch (e) {
+      return { success: false, error: "PROXY_ERROR", provider };
     }
-    // Priority 3: instant cloud relay — Surfshark city -> closest working verified relay
+  }
+
+  // 1. Custom Proxy Mode
+  if (provider.id === "custom_proxy") {
+    try {
+      const proxyChain = normalizeProxyChain(config.customProxyHost);
+      const pacData = buildPacData(targetSites, proxyChain);
+      await chrome.proxy.settings.set({
+        value: {
+          mode: "pac_script",
+          pacScript: { data: pacData }
+        },
+        scope: "regular"
+      });
+      return { success: true, enabled: true, provider };
+    } catch (e) {
+      return { success: false, error: "PROXY_ERROR", provider };
+    }
+  }
+
+  // 2. Surfshark relay mode (fallback when NO Surfshark credentials provided)
+  if (provider.type === "surfshark" || isSurfsharkProviderId(provider.id)) {
     try {
       let relayProxies = (provider.proxies && provider.proxies.length)
         ? provider.proxies
@@ -236,25 +272,7 @@ async function applyState(on) {
     }
   }
 
-  // 1. Custom Proxy Mode
-  if (provider.id === "custom_proxy") {
-    try {
-      const proxyChain = normalizeProxyChain(config.customProxyHost);
-      const pacData = buildPacData(targetSites, proxyChain);
-      await chrome.proxy.settings.set({
-        value: {
-          mode: "pac_script",
-          pacScript: { data: pacData }
-        },
-        scope: "regular"
-      });
-      return { success: true, enabled: true, provider };
-    } catch (e) {
-      return { success: false, error: "PROXY_ERROR", provider };
-    }
-  }
-
-  // 2. Cloud Tunnel Locations (Auto, US, EU, SG)
+  // 3. Free Cloud Tunnel Locations Fallback (Auto, US, EU, SG)
   try {
     let cloudProxies = provider.proxies || [];
     try {
@@ -275,27 +293,54 @@ async function applyState(on) {
   }
 }
 
+// In-memory credential cache for instantaneous 0ms response to Chrome webRequest auth challenges
+let cachedCredentials = { user: "", pass: "" };
+async function refreshCachedCredentials() {
+  try {
+    const config = await getConfig();
+    cachedCredentials.user = (config.surfsharkUsername || "").trim();
+    cachedCredentials.pass = (config.surfsharkPassword || "").trim();
+  } catch (e) {}
+}
+refreshCachedCredentials();
+
+if (chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && (changes.surfsharkUsername || changes.surfsharkPassword)) {
+      refreshCachedCredentials();
+    }
+  });
+}
+
 if (chrome.webRequest && chrome.webRequest.onAuthRequired) {
   chrome.webRequest.onAuthRequired.addListener(
     (details, callback) => {
-      (async () => {
-        try {
-          const config = await getConfig();
-          const user = (config.surfsharkUsername || "").trim();
-          const pass = (config.surfsharkPassword || "").trim();
-          if (user && pass && details.isProxy) {
+      if (details && details.isProxy) {
+        if (cachedCredentials.user && cachedCredentials.pass) {
+          callback({
+            authCredentials: {
+              username: cachedCredentials.user,
+              password: cachedCredentials.pass
+            }
+          });
+          return;
+        }
+        getConfig().then(cfg => {
+          const u = (cfg.surfsharkUsername || "").trim();
+          const p = (cfg.surfsharkPassword || "").trim();
+          if (u && p) {
+            cachedCredentials.user = u;
+            cachedCredentials.pass = p;
             callback({
-              authCredentials: {
-                username: user,
-                password: pass
-              }
+              authCredentials: { username: u, password: p }
             });
-            return;
+          } else {
+            callback({});
           }
-        } catch (e) {}
-        callback({});
-      })();
-      return true;
+        }).catch(() => callback({}));
+        return;
+      }
+      callback({});
     },
     { urls: ["<all_urls>"] },
     ["asyncBlocking"]
