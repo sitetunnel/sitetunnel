@@ -2,12 +2,21 @@
   "manifest_version": 3,
   "name": "SiteTunnel — Single Site VPN Switcher",
   "short_name": "SiteTunnel",
-  "version": "1.2.0",
-  "description": "Route specific websites through secure cloud tunnel with one click. Clean, instant, and minimalist.",
+  "version": "1.4.0",
+  "description": "Route specific websites through secure cloud tunnels & Surfshark locations with one click. Clean, instant, and split-tunnel.",
   "permissions": [
     "proxy",
     "storage",
-    "tabs"
+    "tabs",
+    "webRequest",
+    "webRequestAuthProvider"
+  ],
+  "host_permissions": [
+    "https://api.surfshark.com/*",
+    "https://*.prod.surfshark.com/*",
+    "https://api.country.is/*",
+    "http://*/*",
+    "https://*/*"
   ],
   "action": {
     "default_popup": "popup.html",

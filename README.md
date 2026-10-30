@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <b>Route specific websites through secure cloud tunnels with one click. Clean, instant, and minimalist.</b><br>
+  <b>Route specific websites through your Surfshark VPN locations with one click. Latency-tested, fastest first.</b><br>
   <i>Precision-engineered split-tunneling — keeping your regular web browsing direct, ultra-fast, and unthrottled.</i>
 </p>
 
@@ -52,6 +52,14 @@
   Manage multiple target domains simultaneously. Enter custom domains or pick from one-tap presets (**ChatGPT**, **Netflix**, **Binance**, **Reddit**, **X / Twitter**, **YouTube**).
 - **1-Click "+ Current Tab"**:
   Quickly add the website open in your active browser tab with a single click.
+- **🦈 Full Surfshark Catalogue (142 locations, subscriber-ready)**:
+  All Surfshark countries & cities from the live API (`api.surfshark.com/v4/server/clusters`) with bundled offline fallback. Search by country / city / hostname, filter by region (Europe / Americas / Asia Pacific / Middle East & Africa).
+- **⚡ One-Tap Latency Test (lowest ping → highest)**:
+  `Test Speed` pings every Surfshark location (6-way parallel, 3.5s timeout) and re-sorts the picker fastest-first with color badges (green <150ms, amber <400ms, red slower, timeout gray). Results persist, progress bar shows live fastest.
+- **🔗 Subscriber Handoff (Dashboard + .ovpn)**:
+  Selecting a location shows hostname + `Copy host` / `Dashboard` (`my.surfshark.com/home/dashboard`) / `.ovpn` (`my.surfshark.com/vpn/manual-setup`) actions. Chrome MV3 cannot open WireGuard/OpenVPN sockets, so SiteTunnel guides you to connect the Surfshark app to the exact low-ping city — toggle stays ON as intent state.
+- **🧩 True Split-Tunnel via Local Proxy (optional)**:
+  Run Surfshark WireGuard in Docker/Gluetun exposing `127.0.0.1:8888`, set it in `Optional local Surfshark proxy` — SiteTunnel then routes *only* your chosen sites through the Surfshark tunnel via PAC (`PROXY 127.0.0.1:8888; DIRECT`).
 - **Strict Target Enforcement**:
   On first launch or whenever no websites are configured, SiteTunnel refuses to proxy all traffic—it prompts you to choose the exact site you want to tunnel, safeguarding your normal browsing speed.
 - **Custom Proxy Support**:
@@ -74,7 +82,9 @@ flowchart TD
     DirectWeb --> DestSite
 ```
 
-When you toggle SiteTunnel on, Chrome's native `chrome.proxy` API injects an isolated PAC (Proxy Auto-Config) script:
+**Surfshark mode:** Chrome MV3 extensions cannot dial WireGuard/OpenVPN directly. SiteTunnel is therefore a smart *picker + latency optimizer + handoff* for subscribers: pick the fastest Surfshark city, connect the Surfshark app to it, and optionally route only chosen sites through a local Surfshark-connected proxy (Gluetun `127.0.0.1:8888`).
+
+**Legacy relay mode:** When a legacy cloud relay is selected, Chrome's native `chrome.proxy` API injects an isolated PAC script:
 
 ```javascript
 function FindProxyForURL(url, host) {
@@ -94,10 +104,10 @@ function FindProxyForURL(url, host) {
 ```text
 sitetunnel/
 ├── manifest.json         # Manifest V3 extension definition
-├── background.js         # Service worker & silent proximity locator
-├── vpn_registry.js       # Cloud endpoints, timezone mapping & presets
-├── popup.html            # Minimalist interface & preferences sheet
-├── popup.js              # State controller & tactile interaction logic
+├── background.js         # Service worker, Surfshark-app handoff + split-tunnel PAC
+├── vpn_registry.js       # Surfshark catalogue (142 fallback) + legacy relays + presets
+├── popup.html            # Minimalist UI + Surfshark picker, latency list & handoff
+├── popup.js              # State controller, latency tester (lowest→highest) & picker
 ├── make_logo.py          # 4x supersampled icon generator
 ├── assets/               # High-DPI banner & UI preview images
 │   ├── banner.png
@@ -105,7 +115,7 @@ sitetunnel/
 │   ├── preview_inactive.png
 │   └── preview_preferences.png
 ├── icons/                # High-DPI extension icons (16px, 32px, 48px, 128px)
-├── sitetunnel-v1.2.0.zip # Production-ready Chrome Web Store package
+├── sitetunnel-v1.3.0.zip # Production-ready Chrome Web Store package (Surfshark edition)
 └── README.md             # Project documentation
 ```
 
@@ -124,6 +134,16 @@ sitetunnel/
 3. Enable **Developer mode** toggle in the top-right corner.
 4. Click **Load unpacked** (top-left) and select the `sitetunnel` folder.
 5. Click the **SiteTunnel** icon in your Chrome toolbar to start tunneling!
+
+### 🦈 Surfshark subscriber quick-start
+
+1. Open **Preferences → 🦈 Surfshark Locations**.
+2. Click **↻ Refresh** once (pulls live load % for all 142 locations).
+3. Click **⚡ Test Speed** — wait ~10-20s, list re-sorts fastest-first.
+4. Tap the fastest city (e.g. Singapore 76ms) → **Copy host**.
+5. Open **🔗 Dashboard** (`my.surfshark.com/home/dashboard`) → connect the Surfshark app to the *same* city, or **⬇️ .ovpn** for manual WireGuard/OpenVPN setup.
+6. Toggle SiteTunnel ON — main screen shows `Surfshark Handoff Active • Connect app → Singapore`.
+7. *(Optional true split-tunnel)* Run `gluetun` with Surfshark WireGuard exposing `127.0.0.1:8888`, paste it into *Optional local Surfshark proxy* — now only your chosen sites go through Surfshark, rest stays DIRECT.
 
 ---
 

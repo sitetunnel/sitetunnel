@@ -47,9 +47,83 @@ async function updateDetectedRegion() {
   return fallback;
 }
 
+function formatProxyDirective(raw) {
+  const s = (raw || "").trim();
+  if (!s || s.toUpperCase() === "DIRECT") return "DIRECT";
+  const up = s.toUpperCase();
+  if (up.startsWith("SOCKS5 ") || up.startsWith("SOCKS ") || up.startsWith("PROXY ") || up.startsWith("HTTPS ")) return s;
+  if (up.startsWith("HTTP ")) return "PROXY " + s.slice(5).trim();
+  if (s.toLowerCase().startsWith("socks5://")) return `SOCKS5 ${s.slice(9).trim()}`;
+  if (s.toLowerCase().startsWith("socks://")) return `SOCKS5 ${s.slice(8).trim()}`;
+  if (s.toLowerCase().startsWith("http://")) return `PROXY ${s.slice(7).trim()}`;
+  if (s.toLowerCase().startsWith("https://")) return `HTTPS ${s.slice(8).trim()}`;
+  return `PROXY ${s}`;
+}
+
+function normalizeProxyChain(proxies) {
+  const list = (Array.isArray(proxies) ? proxies : [proxies])
+    .map(p => formatProxyDirective(p))
+    .filter(Boolean);
+  const withoutDirect = list.filter(p => p.toUpperCase() !== "DIRECT");
+  return [...withoutDirect, "DIRECT"].join("; ");
+}
+
+function buildPacData(targetSites, proxyDirectiveList) {
+  const checks = targetSites.map(s => {
+    const d = cleanDomain(s);
+    if (!d) return null;
+    return `(host === "${d}" || dnsDomainIs(host, ".${d}"))`;
+  }).filter(Boolean);
+
+  const matchExpr = checks.length > 0 ? checks.join(" || ") : "false";
+
+  return `function FindProxyForURL(url, host) {
+  if (${matchExpr}) {
+    return "${proxyDirectiveList}";
+  }
+  return "DIRECT";
+}`;
+}
+
+async function filterHealthyProxies(proxyList) {
+  if (!Array.isArray(proxyList) || proxyList.length === 0) return ["DIRECT"];
+  const healthy = [];
+  const rest = [];
+
+  for (const p of proxyList) {
+    if (!p || p === "DIRECT") continue;
+    const parts = p.trim().split(/\s+/);
+    if (parts.length === 2 && (parts[0].toUpperCase() === "PROXY" || parts[0].toUpperCase() === "HTTP")) {
+      const hostPort = parts[1];
+      try {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 700);
+        await fetch(`http://${hostPort}/`, { mode: "no-cors", cache: "no-store", signal: ctrl.signal });
+        clearTimeout(tid);
+        healthy.push(p);
+      } catch (err) {
+        rest.push(p);
+      }
+    } else {
+      healthy.push(p);
+    }
+  }
+
+  const combined = [...healthy, ...rest];
+  if (combined.length === 0) return ["DIRECT"];
+  return [...combined.slice(0, 2), "DIRECT"];
+}
+
 async function applyState(on) {
   const config = await getConfig();
-  const targetSites = getTargetSites(config);
+  const rawSites = getTargetSites(config);
+  // expand single site to include its CDN/video/API hosts so the whole page loads via the same exit
+  let targetSites = rawSites;
+  try {
+    if (typeof expandTargetSitesForPAC === "function") {
+      targetSites = expandTargetSitesForPAC(rawSites);
+    }
+  } catch (e) { targetSites = rawSites; }
   const provider = getProviderInfo(config.vpnProvider, config);
 
   if (!on) {
@@ -67,23 +141,106 @@ async function applyState(on) {
     return { success: false, error: "NO_TARGET_SITES", provider };
   }
 
-  const condition = targetSites.map(s => `shExpMatch(host, "*${s}*")`).join(" || ");
+  // 0. Surfshark subscriber mode (ss:<hostname>)
+  if (provider.type === "surfshark" || isSurfsharkProviderId(provider.id)) {
+    const user = (config.surfsharkUsername || "").trim();
+    const pass = (config.surfsharkPassword || "").trim();
+    const localProxy = (config.surfsharkProxyHost || "").trim();
+    const host = provider.surfshark && provider.surfshark.host ? provider.surfshark.host : surfsharkHostFromProviderId(provider.id);
+
+    // Priority 1: Direct Paid Surfshark HTTPS Proxy (100% Genuine Surfshark Network IP!)
+    if (user && pass && host) {
+      try {
+        const proxyDirective = `HTTPS ${host}:443; PROXY ${host}:80; DIRECT`;
+        const pacData = buildPacData(targetSites, proxyDirective);
+        await chrome.proxy.settings.set({
+          value: {
+            mode: "pac_script",
+            pacScript: { data: pacData }
+          },
+          scope: "regular"
+        });
+        const cityTxt = provider.surfshark ? surfsharkDisplayName(provider.surfshark) : host;
+        return {
+          success: true,
+          enabled: true,
+          provider,
+          mode: "surfshark-direct",
+          accuracy: "exact",
+          exitLabel: `${cityTxt} (Direct Surfshark)`,
+          expandedSites: targetSites
+        };
+      } catch (e) {
+        return { success: false, error: "PROXY_ERROR", provider };
+      }
+    }
+
+    // Priority 2: local Gluetun true split-tunnel
+    if (localProxy) {
+      try {
+        const proxyChain = normalizeProxyChain(localProxy);
+        const pacData = buildPacData(targetSites, proxyChain);
+        await chrome.proxy.settings.set({
+          value: {
+            mode: "pac_script",
+            pacScript: { data: pacData }
+          },
+          scope: "regular"
+        });
+        return { success: true, enabled: true, provider, mode: "surfshark-proxy", accuracy: "exact", expandedSites: targetSites };
+      } catch (e) {
+        return { success: false, error: "PROXY_ERROR", provider };
+      }
+    }
+    // Priority 3: instant cloud relay — Surfshark city -> closest working verified relay
+    try {
+      let relayProxies = (provider.proxies && provider.proxies.length)
+        ? provider.proxies
+        : getRelayProxiesForSurfsharkLocation(provider.surfshark).proxies;
+      try {
+        relayProxies = await filterHealthyProxies(relayProxies);
+      } catch (e) {}
+      const proxyList = normalizeProxyChain(relayProxies);
+      const pacData = buildPacData(targetSites, proxyList);
+      await chrome.proxy.settings.set({
+        value: {
+          mode: "pac_script",
+          pacScript: { data: pacData }
+        },
+        scope: "regular"
+      });
+      let exitLabel = provider.exitLabel || "";
+      try {
+        if (!exitLabel && typeof getExitLabelForRelay === "function") {
+          const rid = provider.relayId || getRelayIdForSurfsharkLocation(provider.surfshark);
+          exitLabel = getExitLabelForRelay(rid, provider.surfshark);
+        }
+      } catch (e) {}
+      return {
+        success: true,
+        enabled: true,
+        provider,
+        mode: "surfshark-relay",
+        relayId: provider.relayId || getRelayIdForSurfsharkLocation(provider.surfshark),
+        exitLabel: exitLabel,
+        accuracy: "approximate",
+        expandedSites: targetSites,
+        handoff: {
+          hostname: provider.surfshark ? provider.surfshark.host : null,
+          dashboard: SURFSHARK_DASHBOARD_URL,
+          manualSetup: SURFSHARK_MANUAL_SETUP_URL
+        }
+      };
+    } catch (e) {
+      return { success: false, error: "PROXY_ERROR", provider };
+    }
+  }
 
   // 1. Custom Proxy Mode
   if (provider.id === "custom_proxy") {
     try {
-      const rawProxy = (config.customProxyHost || "").trim() || "DIRECT";
-      const proxyStr = rawProxy.toUpperCase().startsWith("SOCKS") || rawProxy.toUpperCase().startsWith("PROXY")
-        ? rawProxy
-        : `PROXY ${rawProxy}`;
-      const pacData = `
-        function FindProxyForURL(url, host) {
-          if (${condition}) {
-            return "${proxyStr}; DIRECT";
-          }
-          return "DIRECT";
-        }
-      `;
+      const proxyChain = normalizeProxyChain(config.customProxyHost);
+      const pacData = buildPacData(targetSites, proxyChain);
       await chrome.proxy.settings.set({
         value: {
           mode: "pac_script",
@@ -99,15 +256,12 @@ async function applyState(on) {
 
   // 2. Cloud Tunnel Locations (Auto, US, EU, SG)
   try {
-    const proxyList = (provider.proxies || []).join("; ");
-    const pacData = `
-      function FindProxyForURL(url, host) {
-        if (${condition}) {
-          return "${proxyList}; DIRECT";
-        }
-        return "DIRECT";
-      }
-    `;
+    let cloudProxies = provider.proxies || [];
+    try {
+      cloudProxies = await filterHealthyProxies(cloudProxies);
+    } catch (e) {}
+    const proxyList = normalizeProxyChain(cloudProxies);
+    const pacData = buildPacData(targetSites, proxyList);
     await chrome.proxy.settings.set({
       value: {
         mode: "pac_script",
@@ -121,10 +275,49 @@ async function applyState(on) {
   }
 }
 
+if (chrome.webRequest && chrome.webRequest.onAuthRequired) {
+  chrome.webRequest.onAuthRequired.addListener(
+    (details, callback) => {
+      (async () => {
+        try {
+          const config = await getConfig();
+          const user = (config.surfsharkUsername || "").trim();
+          const pass = (config.surfsharkPassword || "").trim();
+          if (user && pass && details.isProxy) {
+            callback({
+              authCredentials: {
+                username: user,
+                password: pass
+              }
+            });
+            return;
+          }
+        } catch (e) {}
+        callback({});
+      })();
+      return true;
+    },
+    { urls: ["<all_urls>"] },
+    ["asyncBlocking"]
+  );
+}
+
 chrome.runtime.onInstalled.addListener(async () => {
   const cur = await chrome.storage.local.get(null);
   if (typeof cur.enabled === "undefined") {
     await chrome.storage.local.set(DEFAULT_CONFIG);
+  } else {
+    // migrate older configs missing new surfshark keys
+    const patch = {};
+    if (typeof cur.surfsharkUsername === "undefined") patch.surfsharkUsername = "";
+    if (typeof cur.surfsharkPassword === "undefined") patch.surfsharkPassword = "";
+    if (typeof cur.surfsharkLocation === "undefined") patch.surfsharkLocation = null;
+    if (typeof cur.surfsharkProxyHost === "undefined") patch.surfsharkProxyHost = "";
+    if (typeof cur.surfsharkLatency === "undefined") patch.surfsharkLatency = {};
+    if (typeof cur.surfsharkClustersCache === "undefined") patch.surfsharkClustersCache = [];
+    if (typeof cur.surfsharkClustersAt === "undefined") patch.surfsharkClustersAt = 0;
+    if (typeof cur.relayHealth === "undefined") patch.relayHealth = {};
+    if (Object.keys(patch).length) await chrome.storage.local.set(patch);
   }
   await updateDetectedRegion();
   const config = await getConfig();
@@ -175,7 +368,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
         await setConfig({ enabled: true });
         await updateBadge(true);
-        sendResponse({ enabled: true });
+        sendResponse({ enabled: true, mode: result.mode, handoff: result.handoff, provider: result.provider });
       } else {
         await applyState(false);
         await setConfig({ enabled: false });

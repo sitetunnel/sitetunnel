@@ -797,6 +797,154 @@
       transform: translateX(-50%) translateY(0);
       opacity: 1;
     }
+  
+    /* ---------------- SURFSHARK PICKER ---------------- */
+    .ss-search-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .ss-search-row .input-field { flex: 1; min-width: 0; }
+    .ss-test-btn {
+      padding: 7px 10px;
+      background: linear-gradient(150deg, #30D158 0%, #20873B 100%);
+      border: 1px solid rgba(48,209,88,0.5);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      outline: none;
+      transition: all 0.15s ease;
+      box-shadow: 0 2px 10px rgba(48,209,88,0.25);
+    }
+    .ss-test-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+    .ss-test-btn:disabled { opacity: 0.55; cursor: default; transform: none; }
+    .ss-test-btn.stop { background: linear-gradient(150deg, #FF9F0A 0%, #C77800 100%); border-color: rgba(255,159,10,0.5); box-shadow: 0 2px 10px rgba(255,159,10,0.25); }
+    .ss-region-row { display: flex; flex-wrap: wrap; gap: 4px; }
+    .ss-region-chip {
+      font-size: 9px; font-weight: 600;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 999px; padding: 3px 8px;
+      cursor: pointer; color: var(--text-secondary);
+      transition: all 0.15s ease;
+    }
+    .ss-region-chip.active {
+      background: rgba(10,132,255,0.18);
+      border-color: rgba(10,132,255,0.45);
+      color: #5EB0FF;
+    }
+    .ss-status-line {
+      font-size: 10px; color: var(--text-tertiary);
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    }
+    .ss-status-line .live-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: #30D158;
+      box-shadow: 0 0 6px #30D158; display: inline-block; margin-right: 4px;
+      vertical-align: middle;
+    }
+    .ss-status-line .live-dot.cached { background: #FF9F0A; box-shadow: 0 0 6px #FF9F0A; }
+    .ss-status-line .live-dot.offline { background: #636366; box-shadow: none; }
+    .ss-progress-wrap { display: none; flex-direction: column; gap: 4px; }
+    .ss-progress-wrap.show { display: flex; }
+    .ss-progress-track {
+      height: 4px; border-radius: 999px; background: rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+    .ss-progress-bar {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #0A84FF, #30D158);
+      border-radius: 999px; transition: width 0.2s ease;
+    }
+    .ss-progress-text { font-size: 9.5px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+    .ss-list {
+      display: flex; flex-direction: column; gap: 3px;
+      max-height: 168px; overflow-y: auto;
+      padding: 2px; margin: 0 -2px;
+    }
+    .ss-list::-webkit-scrollbar { width: 4px; }
+    .ss-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 999px; }
+    .ss-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px; border-radius: 9px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      cursor: pointer; transition: all 0.15s ease;
+      text-align: left; width: 100%; color: #fff;
+      font-family: inherit;
+    }
+    .ss-row:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.13); }
+    .ss-row.selected {
+      background: rgba(48,209,88,0.12);
+      border-color: rgba(48,209,88,0.4);
+    }
+    .ss-row .flag { font-size: 15px; line-height: 1; flex-shrink: 0; width: 20px; text-align: center; }
+    .ss-row .meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .ss-row .ctry { font-size: 11px; font-weight: 600; letter-spacing: -0.15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ss-row .host { font-size: 9px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ss-row .right { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .ss-load { font-size: 9px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; min-width: 30px; text-align: right; }
+    .ss-ping {
+      font-size: 9px; font-weight: 700; font-variant-numeric: tabular-nums;
+      padding: 2px 6px; border-radius: 999px; min-width: 52px; text-align: center;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--text-tertiary);
+    }
+    .ss-ping.fast { background: rgba(48,209,88,0.15); border-color: rgba(48,209,88,0.4); color: #30D158; }
+    .ss-ping.mid { background: rgba(255,159,10,0.14); border-color: rgba(255,159,10,0.4); color: #FF9F0A; }
+    .ss-ping.slow { background: rgba(255,69,58,0.13); border-color: rgba(255,69,58,0.4); color: #FF6961; }
+    .ss-ping.testing { color: #5EB0FF; border-color: rgba(10,132,255,0.4); }
+    .ss-check { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 9px; color: transparent; flex-shrink: 0; }
+    .ss-row.selected .ss-check { background: #30D158; border-color: #30D158; color: #fff; }
+    .ss-empty { font-size: 10.5px; color: var(--text-tertiary); text-align: center; padding: 14px 8px; font-style: italic; }
+    .ss-handoff {
+      background: rgba(10,132,255,0.08);
+      border: 1px solid rgba(10,132,255,0.25);
+      border-radius: 9px; padding: 8px 9px;
+      display: none; flex-direction: column; gap: 6px;
+    }
+    .ss-handoff.show { display: flex; }
+    .ss-handoff-title { font-size: 10.5px; font-weight: 700; color: #5EB0FF; letter-spacing: -0.1px; }
+    .ss-handoff-host { font-size: 9.5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: rgba(255,255,255,0.75); word-break: break-all; background: rgba(0,0,0,0.3); padding: 4px 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); }
+    .ss-handoff-btns { display: flex; gap: 5px; }
+    .ss-mini-btn {
+      flex: 1; font-size: 9.5px; font-weight: 600;
+      padding: 5px 6px; border-radius: 7px; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.07); color: #fff;
+      transition: all 0.15s ease; outline: none;
+      white-space: nowrap;
+    }
+    .ss-mini-btn:hover { background: rgba(255,255,255,0.13); }
+    .ss-mini-btn.primary { background: rgba(10,132,255,0.85); border-color: rgba(10,132,255,0.5); }
+    .ss-mini-btn.primary:hover { background: #0A84FF; }
+    .ss-hint { font-size: 9.5px; color: var(--text-tertiary); line-height: 1.45; }
+    .ss-hint a { color: #5EB0FF; text-decoration: none; }
+    .ss-legacy-toggle {
+      background: none; border: none; color: var(--text-tertiary);
+      font-size: 10px; font-weight: 600; cursor: pointer; padding: 2px 0;
+      display: flex; align-items: center; gap: 4px; outline: none;
+    }
+    .ss-legacy-toggle:hover { color: var(--text-secondary); }
+    .ss-legacy-body { display: none; flex-direction: column; gap: 9px; }
+    .ss-legacy-body.open { display: flex; }
+
+      .ss-relay-note {
+      font-size: 9.5px; color: rgba(48,209,88,0.9);
+      background: rgba(48,209,88,0.08);
+      border: 1px solid rgba(48,209,88,0.25);
+      border-radius: 7px; padding: 5px 8px; line-height: 1.45;
+    }
+    .ss-checkip-btn {
+      width: 100%; margin-top: 2px;
+      padding: 6px 8px; border-radius: 8px; cursor: pointer;
+      background: rgba(10,132,255,0.15); border: 1px solid rgba(10,132,255,0.35);
+      color: #5EB0FF; font-size: 10.5px; font-weight: 700; outline: none;
+      transition: all 0.15s ease;
+    }
+    .ss-checkip-btn:hover { background: rgba(10,132,255,0.28); color: #fff; }
+
   </style>
 </head>
 <body>
@@ -935,14 +1083,71 @@
           </div>
         </div>
 
-        <!-- Tunnel Location Group -->
+        <!-- Surfshark Subscriber Group -->
         <div class="setting-group">
-          <label class="setting-label" for="providerSelect">Tunnel Node Gateway</label>
+          <div style="display: flex; align-items: center; justify-content: space-between; padding-right: 2px;">
+            <label class="setting-label">🦈 Surfshark Locations (<span id="surfsharkCountBadge">142</span>)</label>
+            <button type="button" class="text-link-btn" id="surfsharkRefreshBtn" title="Refresh live server list + load % from Surfshark API">↻ Refresh</button>
+          </div>
           <div class="setting-card">
+            <div class="ss-search-row">
+              <input type="text" id="surfsharkSearchInput" class="input-field" placeholder="Search country / city / host…" spellcheck="false" autocomplete="off">
+              <button type="button" class="ss-test-btn" id="surfsharkTestBtn" title="Ping every Surfshark location and sort fastest first">⚡ Test Speed</button>
+            </div>
+            <div class="ss-region-row" id="surfsharkRegionChips"></div>
+            <div class="ss-status-line"><span id="surfsharkStatusLine"><span class="live-dot offline"></span>Loading locations…</span><span id="surfsharkSortedHint" style="font-size:9px;"></span></div>
+            <div class="ss-progress-wrap" id="surfsharkProgressWrap">
+              <div class="ss-progress-track"><div class="ss-progress-bar" id="surfsharkProgressBar"></div></div>
+              <div class="ss-progress-text" id="surfsharkProgressText">0 / 0</div>
+            </div>
+            <div class="ss-list" id="surfsharkList"><div class="ss-empty">Loading Surfshark locations…</div></div>
+            <div class="ss-handoff" id="surfsharkSelectedBox">
+              <div class="ss-handoff-title" id="surfsharkSelectedName">Selected</div>
+              <div class="ss-handoff-host" id="surfsharkSelectedHost">—</div>
+              <div class="ss-relay-note" id="surfsharkRelayNote">⚡ Instant relay: IP changes immediately for your tunneled sites.</div>
+              <div class="ss-handoff-btns">
+                <button type="button" class="ss-mini-btn" id="surfsharkCopyBtn">📋 Copy host</button>
+                <button type="button" class="ss-mini-btn primary" id="surfsharkDashboardBtn">🔗 Dashboard</button>
+                <button type="button" class="ss-mini-btn" id="surfsharkOvpnBtn">⬇️ .ovpn</button>
+              </div>
+              <button type="button" class="ss-checkip-btn" id="surfsharkCheckIpBtn">🌐 Check IP — open whatismyipaddress.com</button>
+              <div class="ss-hint">⚡ Relay = instant IP but <b>approximate location + slower</b> (free 2-proxy chain). For <b>exact city + max speed</b>, connect the <a href="#" id="surfsharkDashboardLink">Surfshark app</a> to this city OR run Gluetun Docker (<span style="font-family:monospace;">127.0.0.1:8888</span>, see <span style="font-family:monospace;">surfshark-split-tunnel/</span>) then set it below. Score = ping + load×8 (low score wins).</div>
+            </div>
+            <input type="text" id="surfsharkProxyInput" class="input-field" placeholder="Optional local Surfshark proxy — e.g. 127.0.0.1:8888 (leave empty for App mode)" spellcheck="false" autocomplete="off">
+            <div class="ss-auth-section" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--st-border);">
+              <div style="font-size: 11px; font-weight: 600; color: var(--st-green); margin-bottom: 4px;">🦈 Paid Surfshark Direct Credentials (No Relay)</div>
+              <div class="ss-hint" style="margin-bottom: 6px;">Connect <b>directly to Surfshark servers</b> in any of the 142 cities. Enter credentials from <a href="https://my.surfshark.com/vpn/manual-setup" target="_blank" style="color:var(--st-blue);">Surfshark Manual Setup</a>:</div>
+              <input type="text" id="surfsharkUsernameInput" class="input-field" placeholder="Surfshark Service Username" spellcheck="false" autocomplete="off" style="margin-bottom: 6px;">
+              <input type="password" id="surfsharkPasswordInput" class="input-field" placeholder="Surfshark Service Password" spellcheck="false" autocomplete="off">
+            </div>
+          </div>
+        </div>
+
+        <!-- Diagnostics (v1.3.7 zero-error proof) -->
+        <div class="setting-group">
+          <label class="setting-label">Diagnostics (prove zero error)</label>
+          <div class="setting-card">
+            <div id="stDiag" class="ss-hint" style="font-family:monospace;white-space:pre-wrap;">v1.3.7 loading…</div>
+            <div style="display:flex;gap:5px;">
+              <button type="button" class="ss-mini-btn" id="stCopyDiagBtn">📋 Copy diagnostics</button>
+              <button type="button" class="ss-mini-btn primary" id="stReapplyBtn">↻ Re-apply tunnel</button>
+            </div>
+            <div class="ss-hint">If Singapore shows Frankfurt/India here, tap a Singapore row above, then ↻ Re-apply, toggle OFF/ON, hard-reload whatismyipaddress.com.</div>
+          </div>
+        </div>
+
+        <!-- Tunnel Location Group (Legacy fallback) -->
+        <div class="setting-group">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <label class="setting-label" for="providerSelect">Tunnel Node Gateway</label>
+            <button type="button" class="ss-legacy-toggle" id="legacyToggleBtn">Legacy relays ▾</button>
+          </div>
+          <div class="setting-card ss-legacy-body" id="legacyBody">
             <select id="providerSelect" class="select-field">
               <!-- Dynamically populated -->
             </select>
             <input type="text" id="customProxyInput" class="input-field" placeholder="Proxy Host (e.g. 1.2.3.4:8080 or socks5://...)" style="display: none;" spellcheck="false">
+            <div class="ss-hint">v1.4.0 verified relays: Azure Singapore, Frankfurt & US Squid. Load-aware, zero-hiccup failover. Single site auto-includes essential video/CDN hosts.</div>
           </div>
         </div>
       </div>
