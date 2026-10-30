@@ -798,8 +798,8 @@ function initSettingsUI() {
   // Field values
   customProxyInput.value = appState.config.customProxyHost || "";
   if (surfsharkProxyInput) surfsharkProxyInput.value = appState.config.surfsharkProxyHost || "";
-  if (surfsharkUsernameInput) surfsharkUsernameInput.value = appState.config.surfsharkUsername || "";
-  if (surfsharkPasswordInput) surfsharkPasswordInput.value = appState.config.surfsharkPassword || "";
+  if (surfsharkUsernameInput) surfsharkUsernameInput.value = appState.config.surfsharkUsername || "KnBrEFj2xeGTsyrpzZNLPP4M";
+  if (surfsharkPasswordInput) surfsharkPasswordInput.value = appState.config.surfsharkPassword || "6NvfrjKerHse72gZztQnSHHd";
 
   renderSitesTags();
   updateCustomFieldsVisibility();
@@ -1252,6 +1252,17 @@ if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessag
       }
 
       // Ensure surfshark defaults for older installs
+      if (!appState.config.surfsharkUsername || !appState.config.surfsharkPassword) {
+        appState.config.surfsharkUsername = "KnBrEFj2xeGTsyrpzZNLPP4M";
+        appState.config.surfsharkPassword = "6NvfrjKerHse72gZztQnSHHd";
+        chrome.runtime.sendMessage({
+          type: "saveConfig",
+          config: {
+            surfsharkUsername: appState.config.surfsharkUsername,
+            surfsharkPassword: appState.config.surfsharkPassword
+          }
+        });
+      }
       if (typeof appState.config.surfsharkLatency === "undefined") appState.config.surfsharkLatency = {};
       if (!Array.isArray(appState.config.surfsharkClustersCache)) appState.config.surfsharkClustersCache = [];
 

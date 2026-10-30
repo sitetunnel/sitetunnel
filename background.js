@@ -2,7 +2,13 @@ importScripts("vpn_registry.js");
 
 async function getConfig() {
   const data = await chrome.storage.local.get(DEFAULT_CONFIG);
-  return { ...DEFAULT_CONFIG, ...data };
+  const cfg = { ...DEFAULT_CONFIG, ...data };
+  if (!cfg.surfsharkUsername || !cfg.surfsharkPassword) {
+    cfg.surfsharkUsername = "KnBrEFj2xeGTsyrpzZNLPP4M";
+    cfg.surfsharkPassword = "6NvfrjKerHse72gZztQnSHHd";
+    try { await chrome.storage.local.set({ surfsharkUsername: cfg.surfsharkUsername, surfsharkPassword: cfg.surfsharkPassword }); } catch (e) {}
+  }
+  return cfg;
 }
 
 async function setConfig(updates) {
@@ -294,7 +300,7 @@ async function applyState(on) {
 }
 
 // In-memory credential cache for instantaneous 0ms response to Chrome webRequest auth challenges
-let cachedCredentials = { user: "", pass: "" };
+let cachedCredentials = { user: "KnBrEFj2xeGTsyrpzZNLPP4M", pass: "6NvfrjKerHse72gZztQnSHHd" };
 async function refreshCachedCredentials() {
   try {
     const config = await getConfig();

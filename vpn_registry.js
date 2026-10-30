@@ -169,8 +169,8 @@ const DEFAULT_CONFIG = {
   customProxyHost: "",
   surfsharkLocation: null,
   surfsharkProxyHost: "",
-  surfsharkUsername: "",
-  surfsharkPassword: "",
+  surfsharkUsername: "KnBrEFj2xeGTsyrpzZNLPP4M",
+  surfsharkPassword: "6NvfrjKerHse72gZztQnSHHd",
   surfsharkLatency: {},
   surfsharkClustersCache: [],
   surfsharkClustersAt: 0
